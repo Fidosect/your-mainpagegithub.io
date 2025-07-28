@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,6 +15,71 @@
     
     <!-- Feather Icons for UI -->
     <script src="https://unpkg.com/feather-icons"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKuYayTuAyOHT0WQO8AT0F7UB1hYDtkss",
+            authDomain: "musika-96adb.firebaseapp.com",
+            projectId: "musika-96adb",
+            storageBucket: "musika-96adb.firebasestorage.app",
+            messagingSenderId: "676667599755",
+            appId: "1:676667599755:web:ff251719426c47cadb9d8e",
+            measurementId: "G-NTFC79F6FM"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        // Make Firebase services available globally
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseStorage = storage;
+        window.firebaseAnalytics = analytics;
+        window.firebaseServices = {
+            // Auth services
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            updateProfile,
+            // Firestore services
+            collection,
+            addDoc,
+            getDocs,
+            query,
+            orderBy,
+            where,
+            doc,
+            updateDoc,
+            deleteDoc,
+            serverTimestamp,
+            // Storage services
+            ref,
+            uploadBytes,
+            getDownloadURL,
+            // Analytics
+            logEvent
+        };
+        
+        // Initialize analytics tracking
+        logEvent(analytics, 'page_view', {
+            page_title: 'ZimStudent Hub - Home',
+            page_location: window.location.href
+        });
+    </script>
 
     <style>
         body {
@@ -68,463 +133,1386 @@
             transform: translateX(0);
         }
         .filter-dropdown {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-in-out;
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease-in-out;
         }
         .filter-dropdown.open {
-            max-height: 300px;
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .seller-name {
+            color: #374151;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .seller-name:hover {
+            color: #059669;
+            text-decoration: underline;
+        }
+        .rating-stars {
+            color: #fbbf24;
+        }
+        .favorite-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .favorite-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+        .favorite-btn.active {
+            color: #ef4444;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
 
-    <!-- Notification -->
-    <div id="notification" class="notification bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
-        <div class="flex items-center">
-            <i data-feather="check-circle" class="w-5 h-5 mr-2"></i>
-            <span id="notification-text">Action completed!</span>
-        </div>
-    </div>
-
+<body class="bg-gray-50 min-h-screen">
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <a href="/index.html" id="logo" class="text-2xl font-bold flex items-center">
-                            <span class="text-green-600">Zim</span><span class="text-yellow-400">Student</span><span class="text-red-600">Hub</span>
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">ZS</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">ZimStudent Hub</h1>
+                        <p class="text-xs md:text-sm text-gray-600">Marketplace for Zimbabwean Students in India</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex flex-wrap gap-2 md:gap-3">
+                    <button id="favorites-btn" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-3 md:py-2 md:px-4 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 text-sm md:text-base border-2 border-pink-500 flex items-center gap-2">
+                        <i data-feather="heart" class="w-4 h-4"></i>
+                        Favorites
+                    </button>
+                    <a href="admin.html" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 md:py-2 md:px-4 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 text-sm md:text-base border-2 border-red-500 flex items-center gap-2">
+                        <i data-feather="shield" class="w-4 h-4"></i>
+                        Admin
+                    </a>
+                    <a href="post.html" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-3 md:py-2 md:px-4 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 text-sm md:text-base border-2 border-green-500 flex items-center gap-2">
+                        <i data-feather="plus-circle" class="w-4 h-4"></i>
+                        Post an Ad
+                    </a>
+                    <a href="login.html" id="login-link" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 md:py-2 md:px-4 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 text-sm md:text-base border-2 border-blue-500 flex items-center gap-2">
+                        <i data-feather="log-in" class="w-4 h-4"></i>
+                        Login
+                    </a>
+                    <a href="profile.html" id="logout-link" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-3 md:py-2 md:px-4 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 text-sm md:text-base border-2 border-gray-500 flex items-center gap-2" style="display: none;">
+                        <i data-feather="user" class="w-4 h-4"></i>
+                        Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="bg-gradient-to-r from-green-500 to-blue-600 py-8 md:py-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl md:text-4xl font-bold text-white mb-4">Find What You Need</h2>
+                <p class="text-lg md:text-xl text-green-100">Connect with fellow Zimbabwean students across India</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-2xl p-4 md:p-6">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            placeholder="Search for items, services, or anything..." 
+                            class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none custom-search-input"
+                        >
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="search-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center gap-2">
+                            <i data-feather="search" class="w-5 h-5"></i>
+                            Search
+                        </button>
+                        <button id="filter-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-semibold transition-colors duration-200">
+                            <i data-feather="filter" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Advanced Filters -->
+                <div id="filter-dropdown" class="filter-dropdown mt-4 bg-gray-50 rounded-xl p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                            <select id="price-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none">
+                                <option value="">Any Price</option>
+                                <option value="0-500">Under ₹500</option>
+                                <option value="500-2000">₹500 - ₹2000</option>
+                                <option value="2000-5000">₹2000 - ₹5000</option>
+                                <option value="5000+">Above ₹5000</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">State & City</label>
+                            <select id="location-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none">
+                                <option value="">All Locations</option>
+                                <option value="Delhi, Delhi">Delhi, Delhi</option>
+                                <option value="Mumbai, Maharashtra">Mumbai, Maharashtra</option>
+                                <option value="Bangalore, Karnataka">Bangalore, Karnataka</option>
+                                <option value="Pune, Maharashtra">Pune, Maharashtra</option>
+                                <option value="Chennai, Tamil Nadu">Chennai, Tamil Nadu</option>
+                                <option value="Hyderabad, Telangana">Hyderabad, Telangana</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                            <select id="sort-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none">
+                                <option value="recent">Most Recent</option>
+                                <option value="price-low">Price: Low to High</option>
+                                <option value="price-high">Price: High to Low</option>
+                                <option value="rating">Highest Rated</option>
+                                <option value="popular">Most Popular</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Show</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="favorites-filter" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <span class="ml-2 text-sm text-gray-700">Favorites Only</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button id="apply-filters" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200">
+                            Apply Filters
+                        </button>
+                        <button id="clear-filters" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section class="py-8 md:py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 text-center">Browse Categories</h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-6">
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center active" data-category="all">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="grid" class="w-6 h-6 md:w-8 md:h-8 text-gray-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">All</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Everything</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="electronics">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="smartphone" class="w-6 h-6 md:w-8 md:h-8 text-blue-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Electronics</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Phones, Laptops</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="books">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="book" class="w-6 h-6 md:w-8 md:h-8 text-green-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Books</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Textbooks, Novels</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="furniture">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="home" class="w-6 h-6 md:w-8 md:h-8 text-yellow-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Furniture</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Beds, Desks</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="clothing">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="shopping-bag" class="w-6 h-6 md:w-8 md:h-8 text-purple-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Clothing</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Fashion, Shoes</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="services">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="users" class="w-6 h-6 md:w-8 md:h-8 text-red-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Services</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Tutoring, Help</p>
+                </div>
+
+                <div class="category-card bg-white rounded-xl p-4 md:p-6 shadow-md cursor-pointer text-center" data-category="other">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i data-feather="more-horizontal" class="w-6 h-6 md:w-8 md:h-8 text-gray-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm md:text-base">Other</h4>
+                    <p class="text-xs md:text-sm text-gray-600 mt-1">Miscellaneous</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Listings -->
+    <section class="py-8 md:py-12 bg-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-0">Recent Listings</h3>
+                <button class="text-green-600 hover:text-green-700 font-semibold flex items-center gap-2">
+                    View All <i data-feather="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" id="listings-container">
+                <!-- Sample Listing 1 -->
+                <div class="product-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-40 md:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                        <i data-feather="smartphone" class="w-12 h-12 md:w-16 md:h-16 text-white"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-gray-900 mb-2 text-sm md:text-base">iPhone 12 - Excellent Condition</h4>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="price-badge text-white px-2 py-1 rounded-full text-xs md:text-sm font-semibold">₹35,000</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="location-badge text-white px-2 py-1 rounded-full text-xs font-medium">Delhi</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="seller-badge text-white px-2 py-1 rounded-full text-xs font-medium">Tanaka M.</span>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base">
+                            Contact Seller
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample Listing 2 -->
+                <div class="product-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-40 md:h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                        <i data-feather="book" class="w-12 h-12 md:w-16 md:h-16 text-white"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-gray-900 mb-2 text-sm md:text-base">Engineering Textbooks Set</h4>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="price-badge text-white px-2 py-1 rounded-full text-xs md:text-sm font-semibold">₹2,500</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="location-badge text-white px-2 py-1 rounded-full text-xs font-medium">Mumbai</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="seller-badge text-white px-2 py-1 rounded-full text-xs font-medium">Chipo K.</span>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base">
+                            Contact Seller
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample Listing 3 -->
+                <div class="product-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-40 md:h-48 bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                        <i data-feather="home" class="w-12 h-12 md:w-16 md:h-16 text-white"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-gray-900 mb-2 text-sm md:text-base">Study Desk with Chair</h4>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="price-badge text-white px-2 py-1 rounded-full text-xs md:text-sm font-semibold">₹4,000</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="location-badge text-white px-2 py-1 rounded-full text-xs font-medium">Bangalore</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="seller-badge text-white px-2 py-1 rounded-full text-xs font-medium">Farai T.</span>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base">
+                            Contact Seller
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample Listing 4 -->
+                <div class="product-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-40 md:h-48 bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                        <i data-feather="users" class="w-12 h-12 md:w-16 md:h-16 text-white"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-gray-900 mb-2 text-sm md:text-base">Math Tutoring Services</h4>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="price-badge text-white px-2 py-1 rounded-full text-xs md:text-sm font-semibold">₹500/hr</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="location-badge text-white px-2 py-1 rounded-full text-xs font-medium">Pune</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="seller-badge text-white px-2 py-1 rounded-full text-xs font-medium">Rudo N.</span>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base">
+                            Contact Seller
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8 md:py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">ZS</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">ZimStudent Hub</h3>
+                            <p class="text-gray-400 text-sm">Connecting Zimbabwean students across India</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 mb-4 text-sm md:text-base">
+                        A safe and trusted marketplace designed specifically for Zimbabwean students studying in India. 
+                        Buy, sell, and connect with your fellow students.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">How It Works</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Safety Tips</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Report Issue</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8">
+                <!-- Download App Section -->
+                <div class="text-center mb-8">
+                    <h4 class="text-lg font-semibold mb-4">Get the ZimStudent Hub App</h4>
+                    <p class="text-gray-400 mb-6 text-sm">Download our mobile app for a better experience on the go!</p>
+                    <div class="flex justify-center gap-4">
+                        <a href="#" class="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg flex items-center gap-3 transition-colors duration-200 transform hover:scale-105">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.61 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.92 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+                            </svg>
+                            <div class="text-left">
+                                <div class="text-xs">GET IT ON</div>
+                                <div class="text-sm font-semibold">Google Play</div>
+                            </div>
+                        </a>
+                        <a href="#" class="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg flex items-center gap-3 transition-colors duration-200 transform hover:scale-105">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/>
+                            </svg>
+                            <div class="text-left">
+                                <div class="text-xs">Download on the</div>
+                                <div class="text-sm font-semibold">App Store</div>
+                            </div>
                         </a>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a id="admin-btn" href="admin.html" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        Admin
-                    </a>
-                    <a id="post-ad-btn" href="post.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        Post an Ad
-                    </a>
-                    <button id="login-btn" href="login.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        Login
-                    </button>
-                    <button id="logout-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        Logout
-                    </button>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <!-- Main Marketplace View -->
-    <div id="main-view">
-        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Hero Section -->
-            <section class="text-center pt-8 pb-12">
-                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
-                    The Marketplace for <span class="text-green-600">Zim Students</span> in India
-                </h1>
-                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                    Buy, sell, and connect. Find textbooks, electronics, accommodation, and more from fellow students.
-                </p>
-                <div class="mt-8 max-w-xl mx-auto flex items-center bg-white rounded-full shadow-lg">
-                    <div class="pl-5 pr-2">
-                        <i data-feather="search" class="text-gray-400"></i>
-                    </div>
-                    <input id="searchInput" type="text" placeholder="Search for 'textbooks' or 'laptops'..." class="custom-search-input w-full py-4 px-2 text-gray-700 leading-tight focus:outline-none rounded-full">
-                </div>
-            </section>
-
-            <!-- Filters Section -->
-            <section class="py-4">
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-                    <div class="flex flex-wrap items-center gap-4">
-                        <button id="filter-toggle" class="flex items-center text-gray-600 hover:text-gray-800 font-medium">
-                            <i data-feather="filter" class="w-4 h-4 mr-2"></i>
-                            Filters
-                            <i data-feather="chevron-down" class="w-4 h-4 ml-1" id="filter-chevron"></i>
-                        </button>
-                        <div class="flex items-center space-x-4">
-                            <select id="sort-select" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                                <option value="newest">Newest First</option>
-                                <option value="price-low">Price: Low to High</option>
-                                <option value="price-high">Price: High to Low</option>
-                            </select>
-                            <button id="clear-filters" class="text-red-600 hover:text-red-800 text-sm font-medium">Clear All</button>
-                        </div>
-                    </div>
-                    
-                    <div id="filter-dropdown" class="filter-dropdown mt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                                <select id="location-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                                    <option value="">All Locations</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
-                                <select id="price-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                                    <option value="">All Prices</option>
-                                    <option value="0-1000">Under ₹1,000</option>
-                                    <option value="1000-5000">₹1,000 - ₹5,000</option>
-                                    <option value="5000-20000">₹5,000 - ₹20,000</option>
-                                    <option value="20000-50000">₹20,000 - ₹50,000</option>
-                                    <option value="50000+">Above ₹50,000</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <select id="condition-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                                    <option value="">All Conditions</option>
-                                    <option value="new">New</option>
-                                    <option value="like-new">Like New</option>
-                                    <option value="good">Good</option>
-                                    <option value="fair">Fair</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Categories Section -->
-            <section class="py-8">
-                <h2 class="text-2xl font-bold text-center mb-8">Browse by Category</h2>
-                <div id="category-container" class="flex overflow-x-auto space-x-4 pb-4 no-scrollbar">
-                    <!-- Categories will be injected here -->
-                </div>
-            </section>
-
-            <!-- Featured Items Section -->
-            <section class="py-8">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold">Recent Listings</h2>
-                    <div class="text-sm text-gray-500">
-                        Showing <span id="showing-count">0</span> of <span id="total-count">0</span> items
-                    </div>
-                </div>
-                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Product cards will be injected here by JavaScript -->
-                </div>
-                <div id="no-results" class="hidden text-center py-12">
-                    <i data-feather="search" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
-                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No items found</h3>
-                    <p class="text-gray-500">Try adjusting your search or filters. Or maybe there are no approved products yet.</p>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="text-center">
-                <p>© 2025 ZimStudentHub. All rights reserved.</p>
-                <p class="text-sm text-gray-400 mt-1">Connecting the Zimbabwean student community across India.</p>
-                <div class="mt-4 flex justify-center space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a>
-                    <a href="#" class="text-gray-400 hover:text-white">Terms of Service</a>
-                    <a href="#" class="text-gray-400 hover:text-white">Contact Us</a>
+                
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm">
+                        © 2024 ZimStudent Hub. Made with ❤️ for Zimbabwean students in India.
+                    </p>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Floating Action Button -->
+    <div class="floating-action">
+        <button id="floating-post-btn" class="bg-green-600 hover:bg-green-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 transform hover:scale-110">
+            <i data-feather="plus" class="w-6 h-6"></i>
+        </button>
+    </div>
 
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyDKuYayTuAyOHT0WQO8AT0F7UB1hYDtkss",
-          authDomain: "musika-96adb.firebaseapp.com",
-          projectId: "musika-96adb",
-          storageBucket: "musika-96adb.appspot.com",
-          messagingSenderId: "676667599755",
-          appId: "1:676667599755:web:ff251719426c47cadb9d8e",
-          measurementId: "G-NTFC79F6FM"
-        };
+    <!-- Notification -->
+    <div id="notification" class="notification bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg">
+        <div class="flex items-center gap-3">
+            <i data-feather="check-circle" class="w-5 h-5"></i>
+            <span id="notification-text">Action completed successfully!</span>
+        </div>
+    </div>
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
 
-        // --- ADMIN CONFIG ---
-        const ADMIN_UID = "REPLACE_WITH_YOUR_ADMIN_UID"; // IMPORTANT: Replace with your actual Admin User ID from Firebase Auth
-
-        // --- DOM ELEMENTS ---
-        const productGrid = document.getElementById('product-grid');
-        const noResults = document.getElementById('no-results');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const adminBtn = document.getElementById('admin-btn');
-        const showingCount = document.getElementById('showing-count');
-        const totalCount = document.getElementById('total-count');
-        const categoryContainer = document.getElementById('category-container');
-        const searchInput = document.getElementById('searchInput');
-        const sortSelect = document.getElementById('sort-select');
-        const locationFilter = document.getElementById('location-filter');
-        const priceFilter = document.getElementById('price-filter');
-        const conditionFilter = document.getElementById('condition-filter');
-        const clearFiltersBtn = document.getElementById('clear-filters');
-        
-        let allProducts = [];
-        let filteredProducts = [];
-        let currentCategory = 'All';
-        let currentSearchTerm = '';
-        let currentSort = 'newest';
-        let currentFilters = {
-            location: '',
-            price: '',
-            condition: ''
-        };
-
-        const categories = [
-            { name: 'All', icon: 'grid', count: 0 },
-            { name: 'Textbooks', icon: 'book-open', count: 0 },
-            { name: 'Electronics', icon: 'smartphone', count: 0 },
-            { name: 'Accommodation', icon: 'home', count: 0 },
-            { name: 'Services', icon: 'briefcase', count: 0 },
-            { name: 'Furniture', icon: 'archive', count: 0 },
-            { name: 'Sports', icon: 'activity', count: 0 }
+        // Sample data for demonstration
+        const sampleListings = [
+            {
+                id: 1,
+                title: "MacBook Pro 2020 - Like New",
+                description: "Excellent condition MacBook Pro with 16GB RAM, 512GB SSD. Perfect for students and professionals. Comes with original charger and box.",
+                price: "₹85,000",
+                priceValue: 85000,
+                location: "Delhi, Delhi",
+                seller: "Tafara S.",
+                sellerId: "tafara_s",
+                category: "electronics",
+                icon: "laptop",
+                rating: 4.8,
+                reviewCount: 23,
+                isFavorite: false,
+                datePosted: new Date('2024-01-15'),
+                images: [
+                    "https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=MacBook+Pro+Front",
+                    "https://via.placeholder.com/600x400/1D4ED8/FFFFFF?text=MacBook+Pro+Side",
+                    "https://via.placeholder.com/600x400/2563EB/FFFFFF?text=MacBook+Pro+Screen",
+                    "https://via.placeholder.com/600x400/1E40AF/FFFFFF?text=MacBook+Pro+Keyboard"
+                ]
+            },
+            {
+                id: 2,
+                title: "Organic Chemistry Textbook",
+                description: "Latest edition organic chemistry textbook. Minimal highlighting, all pages intact. Great for medical and engineering students.",
+                price: "₹800",
+                priceValue: 800,
+                location: "Mumbai, Maharashtra",
+                seller: "Nyasha P.",
+                sellerId: "nyasha_p",
+                category: "books",
+                icon: "book",
+                rating: 4.9,
+                reviewCount: 15,
+                isFavorite: true,
+                datePosted: new Date('2024-01-18'),
+                images: [
+                    "https://via.placeholder.com/600x400/10B981/FFFFFF?text=Chemistry+Book+Cover",
+                    "https://via.placeholder.com/600x400/059669/FFFFFF?text=Book+Contents",
+                    "https://via.placeholder.com/600x400/047857/FFFFFF?text=Book+Pages"
+                ]
+            },
+            {
+                id: 3,
+                title: "Room Available - Shared Apartment",
+                description: "Spacious room in 3BHK apartment. Fully furnished with AC, WiFi, and all amenities. Close to metro station and universities.",
+                price: "₹8,000/month",
+                priceValue: 8000,
+                location: "Bangalore, Karnataka",
+                seller: "Kudzi M.",
+                sellerId: "kudzi_m",
+                category: "services",
+                icon: "home",
+                rating: 4.6,
+                reviewCount: 31,
+                isFavorite: false,
+                datePosted: new Date('2024-01-20'),
+                images: [
+                    "https://via.placeholder.com/600x400/F59E0B/FFFFFF?text=Room+View",
+                    "https://via.placeholder.com/600x400/D97706/FFFFFF?text=Apartment+Living+Room",
+                    "https://via.placeholder.com/600x400/B45309/FFFFFF?text=Kitchen+Area",
+                    "https://via.placeholder.com/600x400/92400E/FFFFFF?text=Bathroom"
+                ]
+            },
+            {
+                id: 4,
+                title: "Winter Jacket - Brand New",
+                description: "Brand new winter jacket, never worn. Size M, perfect for Indian winters. Water-resistant and very warm.",
+                price: "₹2,500",
+                priceValue: 2500,
+                location: "Chennai, Tamil Nadu",
+                seller: "Tendai R.",
+                sellerId: "tendai_r",
+                category: "clothing",
+                icon: "shopping-bag",
+                rating: 4.7,
+                reviewCount: 8,
+                isFavorite: false,
+                datePosted: new Date('2024-01-22'),
+                images: [
+                    "https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Winter+Jacket+Front",
+                    "https://via.placeholder.com/600x400/7C3AED/FFFFFF?text=Jacket+Back",
+                    "https://via.placeholder.com/600x400/6D28D9/FFFFFF?text=Jacket+Details"
+                ]
+            },
+            {
+                id: 5,
+                title: "iPhone 12 - Excellent Condition",
+                description: "iPhone 12 in excellent condition. 128GB storage, battery health 89%. Includes original box, charger, and screen protector.",
+                price: "₹35,000",
+                priceValue: 35000,
+                location: "Delhi, Delhi",
+                seller: "Tanaka M.",
+                sellerId: "tanaka_m",
+                category: "electronics",
+                icon: "smartphone",
+                rating: 4.5,
+                reviewCount: 12,
+                isFavorite: true,
+                datePosted: new Date('2024-01-25'),
+                images: [
+                    "https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=iPhone+12+Front",
+                    "https://via.placeholder.com/600x400/1D4ED8/FFFFFF?text=iPhone+12+Back",
+                    "https://via.placeholder.com/600x400/2563EB/FFFFFF?text=iPhone+12+Box",
+                    "https://via.placeholder.com/600x400/1E40AF/FFFFFF?text=iPhone+12+Accessories"
+                ]
+            },
+            {
+                id: 6,
+                title: "Engineering Textbooks Set",
+                description: "Complete set of engineering textbooks for first and second year. All subjects included. Great condition with minimal wear.",
+                price: "₹2,500",
+                priceValue: 2500,
+                location: "Mumbai, Maharashtra",
+                seller: "Chipo K.",
+                sellerId: "chipo_k",
+                category: "books",
+                icon: "book",
+                rating: 4.9,
+                reviewCount: 19,
+                isFavorite: false,
+                datePosted: new Date('2024-01-28'),
+                images: [
+                    "https://via.placeholder.com/600x400/10B981/FFFFFF?text=Engineering+Books+Set",
+                    "https://via.placeholder.com/600x400/059669/FFFFFF?text=Math+Textbook",
+                    "https://via.placeholder.com/600x400/047857/FFFFFF?text=Physics+Book",
+                    "https://via.placeholder.com/600x400/065F46/FFFFFF?text=Chemistry+Book"
+                ]
+            }
         ];
 
-        // --- AUTHENTICATION ---
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                // User is signed in
-                loginBtn.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-                if (user.uid === ADMIN_UID) {
-                    adminBtn.classList.remove('hidden');
-                }
-            } else {
-                // User is signed out
-                loginBtn.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-                adminBtn.classList.add('hidden');
-            }
-        });
+        let currentCategory = 'all';
+        let currentListings = sampleListings;
 
-        loginBtn.addEventListener('click', () => {
-            window.location.href = '/login.html';
-        });
+        // DOM Elements
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const filterBtn = document.getElementById('filter-btn');
+        const filterDropdown = document.getElementById('filter-dropdown');
+        const listingsContainer = document.getElementById('listings-container');
+        const categoryCards = document.querySelectorAll('.category-card');
+        const notification = document.getElementById('notification');
+        const floatingPostBtn = document.getElementById('floating-post-btn');
+        // Navigation links are now handled as regular anchor tags
 
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                showNotification('You have been logged out.');
-            }).catch((error) => {
-                console.error('Logout Error:', error);
-                showNotification('Error logging out.', 'error');
-            });
-        });
-
-        // --- DATA FETCHING ---
-        const productsRef = collection(db, "products");
-        onSnapshot(query(productsRef, where("approved", "==", true)), (snapshot) => {
-            allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            populateLocationFilter();
-            applyFiltersAndRender();
-        });
-
-        // --- RENDERING ---
-        function renderProducts(productsToRender) {
-            if (productsToRender.length === 0) {
-                productGrid.innerHTML = '';
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-                productGrid.innerHTML = productsToRender.map(product => `
-                    <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200" data-product-id="${product.id}">
-                        <div class="relative">
-                            <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/475569?text=Image+Error';">
-                            <div class="absolute top-2 left-2">
-                                <span class="condition-badge px-2 py-1 text-xs font-medium text-white rounded-full ${product.condition === 'new' ? 'bg-green-500' : product.condition === 'like-new' ? 'bg-blue-500' : product.condition === 'good' ? 'bg-yellow-500' : 'bg-gray-500'}">${product.condition}</span>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-semibold text-lg mb-2 line-clamp-2">${product.title}</h3>
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="price-badge text-white px-3 py-1 rounded-full text-sm font-bold">₹${product.price}</span>
-                                <span class="location-badge text-white px-2 py-1 rounded-full text-xs">${product.location}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600 font-medium flex items-center">
-                                    <i data-feather="user" class="w-4 h-4 mr-1"></i>
-                                    ${product.sellerName}
-                                </span>
-                            </div>
-                            <div class="mt-3 pt-3 border-t border-gray-100">
-                                <a href="https://wa.me/${product.sellerWhatsapp}?text=Hi! I'm interested in: ${encodeURIComponent(product.title)}" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-center block transition-colors">
-                                    <i data-feather="message-circle" class="w-4 h-4 inline mr-2"></i>
-                                    Contact Seller
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            feather.replace();
-            updateStats();
-        }
-
-        function renderCategories() {
-            categories.forEach(cat => {
-                if (cat.name === 'All') {
-                    cat.count = allProducts.length;
-                } else {
-                    cat.count = allProducts.filter(p => p.category === cat.name).length;
-                }
-            });
-
-            categoryContainer.innerHTML = categories.map(category => `
-                <div class="category-card flex-shrink-0 bg-white rounded-lg shadow-sm p-4 cursor-pointer border-2 border-transparent hover:border-green-200 ${category.name === currentCategory ? 'active' : ''}" data-category="${category.name}">
-                    <div class="flex flex-col items-center text-center">
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                            <i data-feather="${category.icon}" class="w-6 h-6 text-green-600"></i>
-                        </div>
-                        <h3 class="font-semibold text-sm">${category.name}</h3>
-                        <span class="text-xs text-gray-500 mt-1">${category.count} items</span>
-                    </div>
-                </div>
-            `).join('');
-            feather.replace();
-        }
-
-        // --- FILTERING AND SORTING ---
-        function applyFiltersAndRender() {
-            let filtered = [...allProducts];
-
-            // Category filter
-            if (currentCategory !== 'All') {
-                filtered = filtered.filter(p => p.category === currentCategory);
-            }
-
-            // Search filter
-            if (currentSearchTerm) {
-                const term = currentSearchTerm.toLowerCase();
-                filtered = filtered.filter(p => 
-                    p.title.toLowerCase().includes(term) ||
-                    p.category.toLowerCase().includes(term) ||
-                    p.location.toLowerCase().includes(term)
-                );
+        // Generate star rating HTML
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 !== 0;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            
+            let starsHTML = '';
+            
+            // Full stars
+            for (let i = 0; i < fullStars; i++) {
+                starsHTML += '<i data-feather="star" class="w-3 h-3 fill-current"></i>';
             }
             
-            // Advanced filters
-            if (currentFilters.location) {
-                filtered = filtered.filter(p => p.location === currentFilters.location);
+            // Half star
+            if (hasHalfStar) {
+                starsHTML += '<i data-feather="star" class="w-3 h-3 fill-current opacity-50"></i>';
             }
-            if (currentFilters.condition) {
-                filtered = filtered.filter(p => p.condition === currentFilters.condition);
+            
+            // Empty stars
+            for (let i = 0; i < emptyStars; i++) {
+                starsHTML += '<i data-feather="star" class="w-3 h-3"></i>';
             }
-            if (currentFilters.price) {
-                const [min, max] = currentFilters.price.split('-').map(p => p.replace('+', ''));
-                filtered = filtered.filter(p => {
-                    const priceNum = parseFloat(p.price);
-                    if (currentFilters.price.includes('+')) {
-                        return priceNum >= parseInt(min);
-                    } else {
-                        return priceNum >= parseInt(min) && priceNum <= parseInt(max);
-                    }
-                });
-            }
-
-            // Sorting
-            switch (currentSort) {
-                case 'price-low':
-                    filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-                    break;
-                case 'price-high':
-                    filtered.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-                    break;
-                case 'newest':
-                default:
-                    // Assuming products have a timestamp field, otherwise sort by another field
-                    // For now, no specific date sorting as it's not in the Firestore data yet
-                    break;
-            }
-
-            filteredProducts = filtered;
-            renderProducts(filteredProducts);
-            renderCategories();
-        }
-        
-        function populateLocationFilter() {
-            const locations = [...new Set(allProducts.map(p => p.location))].sort();
-            locationFilter.innerHTML = '<option value="">All Locations</option>' + 
-                locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+            
+            return starsHTML;
         }
 
-        function updateStats() {
-            showingCount.textContent = filteredProducts.length;
-            totalCount.textContent = allProducts.length;
-        }
-        
-        // --- EVENT LISTENERS ---
-        searchInput.addEventListener('input', (e) => {
-            currentSearchTerm = e.target.value;
-            applyFiltersAndRender();
-        });
-
-        categoryContainer.addEventListener('click', (e) => {
-            const card = e.target.closest('.category-card');
-            if (card) {
-                document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                currentCategory = card.dataset.category;
-                applyFiltersAndRender();
-            }
-        });
-
-        sortSelect.addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            applyFiltersAndRender();
-        });
-
-        locationFilter.addEventListener('change', (e) => { currentFilters.location = e.target.value; applyFiltersAndRender(); });
-        priceFilter.addEventListener('change', (e) => { currentFilters.price = e.target.value; applyFiltersAndRender(); });
-        conditionFilter.addEventListener('change', (e) => { currentFilters.condition = e.target.value; applyFiltersAndRender(); });
-
-        clearFiltersBtn.addEventListener('click', () => {
-            currentFilters = { location: '', price: '', condition: '' };
-            locationFilter.value = '';
-            priceFilter.value = '';
-            conditionFilter.value = '';
-            sortSelect.value = 'newest';
-            currentSort = 'newest';
-            currentSearchTerm = '';
-            searchInput.value = '';
-            currentCategory = 'All';
-            applyFiltersAndRender();
-            showNotification('Filters cleared');
-        });
-        
-        document.getElementById('filter-toggle').addEventListener('click', () => {
-            const dropdown = document.getElementById('filter-dropdown');
-            const chevron = document.getElementById('filter-chevron');
-            dropdown.classList.toggle('open');
-            chevron.style.transform = dropdown.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
-        });
-
-        // --- UTILITY FUNCTIONS ---
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notification-text');
-            notificationText.textContent = message;
-            notification.className = `notification ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg show`;
+        // Show notification function
+        function showNotification(message) {
+            document.getElementById('notification-text').textContent = message;
+            notification.classList.add('show');
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 3000);
         }
 
-        // Initial Load
-        window.addEventListener('DOMContentLoaded', () => {
+        // Filter toggle
+        filterBtn.addEventListener('click', () => {
+            filterDropdown.classList.toggle('open');
+        });
+
+        // Category selection
+        categoryCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active class from all cards
+                categoryCards.forEach(c => c.classList.remove('active'));
+                // Add active class to clicked card
+                card.classList.add('active');
+                
+                currentCategory = card.dataset.category;
+                filterListings();
+                showNotification(`Showing ${currentCategory} items`);
+            });
+        });
+
+        // Search functionality
+        function performSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            if (query) {
+                showNotification(`Searching for "${query}"`);
+                // In a real app, this would make an API call
+                filterListings(query);
+            }
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // Enhanced filter listings function
+        function filterListings(searchQuery = '') {
+            let filtered = [...currentListings];
+            
+            // Category filter
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(listing => listing.category === currentCategory);
+            }
+            
+            // Search query filter
+            if (searchQuery) {
+                filtered = filtered.filter(listing => 
+                    listing.title.toLowerCase().includes(searchQuery) ||
+                    listing.location.toLowerCase().includes(searchQuery) ||
+                    listing.seller.toLowerCase().includes(searchQuery)
+                );
+            }
+            
+            // Apply advanced filters
+            const priceFilter = document.getElementById('price-filter')?.value;
+            const locationFilter = document.getElementById('location-filter')?.value;
+            const sortFilter = document.getElementById('sort-filter')?.value;
+            const favoritesOnly = document.getElementById('favorites-filter')?.checked;
+            
+            // Price range filter
+            if (priceFilter) {
+                filtered = filtered.filter(listing => {
+                    const price = listing.priceValue;
+                    switch (priceFilter) {
+                        case '0-500': return price <= 500;
+                        case '500-2000': return price > 500 && price <= 2000;
+                        case '2000-5000': return price > 2000 && price <= 5000;
+                        case '5000+': return price > 5000;
+                        default: return true;
+                    }
+                });
+            }
+            
+            // Location filter
+            if (locationFilter) {
+                filtered = filtered.filter(listing => listing.location === locationFilter);
+            }
+            
+            // Favorites filter
+            if (favoritesOnly) {
+                filtered = filtered.filter(listing => listing.isFavorite);
+            }
+            
+            // Sort results
+            if (sortFilter) {
+                switch (sortFilter) {
+                    case 'price-low':
+                        filtered.sort((a, b) => a.priceValue - b.priceValue);
+                        break;
+                    case 'price-high':
+                        filtered.sort((a, b) => b.priceValue - a.priceValue);
+                        break;
+                    case 'rating':
+                        filtered.sort((a, b) => b.rating - a.rating);
+                        break;
+                    case 'popular':
+                        filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+                        break;
+                    case 'recent':
+                    default:
+                        // Keep original order (most recent first)
+                        break;
+                }
+            }
+            
+            renderListings(filtered);
+        }
+
+        // Apply filters button functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const applyFiltersBtn = document.getElementById('apply-filters');
+            const clearFiltersBtn = document.getElementById('clear-filters');
+            
+            if (applyFiltersBtn) {
+                applyFiltersBtn.addEventListener('click', () => {
+                    filterListings();
+                    showNotification('Filters applied successfully!');
+                    trackUserAction('filters_applied', 'search');
+                });
+            }
+            
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => {
+                    // Reset all filter inputs
+                    document.getElementById('price-filter').value = '';
+                    document.getElementById('location-filter').value = '';
+                    document.getElementById('sort-filter').value = 'recent';
+                    document.getElementById('favorites-filter').checked = false;
+                    
+                    // Reset category
+                    categoryCards.forEach(c => c.classList.remove('active'));
+                    currentCategory = 'all';
+                    
+                    // Clear search
+                    searchInput.value = '';
+                    
+                    // Re-render all listings
+                    renderListings(currentListings);
+                    showNotification('All filters cleared!');
+                    trackUserAction('filters_cleared', 'search');
+                });
+            }
+        });
+
+        // Render listings function
+        function renderListings(listings) {
+            if (listings.length === 0) {
+                listingsContainer.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i data-feather="search" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">No items found</h3>
+                        <p class="text-gray-500">Try adjusting your search or browse different categories</p>
+                    </div>
+                `;
+                feather.replace();
+                return;
+            }
+
+            const listingsHTML = listings.map(listing => `
+                <div class="product-card bg-white rounded-xl shadow-md overflow-hidden relative">
+                    <div class="h-40 md:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center relative">
+                        <i data-feather="${listing.icon}" class="w-12 h-12 md:w-16 md:h-16 text-white"></i>
+                        <button class="favorite-btn ${listing.isFavorite ? 'active' : ''}" data-listing-id="${listing.id}">
+                            <i data-feather="heart" class="w-4 h-4 ${listing.isFavorite ? 'fill-current' : ''}"></i>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-gray-900 mb-2 text-sm md:text-base">${listing.title}</h4>
+                        
+                        <!-- Price and Location side by side -->
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="price-badge text-white px-2 py-1 rounded-full text-xs md:text-sm font-semibold">${listing.price}</span>
+                            <span class="location-badge text-white px-2 py-1 rounded-full text-xs font-medium">${listing.location}</span>
+                        </div>
+                        
+                        <!-- Rating -->
+                        <div class="flex items-center gap-1 mb-2">
+                            <div class="flex items-center rating-stars">
+                                ${generateStars(listing.rating)}
+                            </div>
+                            <span class="text-xs text-gray-600">${listing.rating} (${listing.reviewCount} reviews)</span>
+                        </div>
+                        
+                        <!-- Seller name (clickable, not colored) -->
+                        <div class="mb-3">
+                            <span class="text-xs text-gray-500">Sold by: </span>
+                            <span class="seller-name text-xs font-medium" data-seller-id="${listing.sellerId}">${listing.seller}</span>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base contact-btn" data-listing-id="${listing.id}">
+                                Contact Seller
+                            </button>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base view-details-btn" data-listing-id="${listing.id}">
+                                <i data-feather="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            listingsContainer.innerHTML = listingsHTML;
             feather.replace();
+            
+            // Add event listeners to contact buttons
+            document.querySelectorAll('.contact-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const listingId = e.target.dataset.listingId;
+                    const listing = listings.find(l => l.id == listingId);
+                    showNotification(`Contacting ${listing.seller}...`);
+                });
+            });
+
+            // Add event listeners to view details buttons
+            document.querySelectorAll('.view-details-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const listingId = parseInt(e.currentTarget.dataset.listingId);
+                    showListingDetails(listingId);
+                });
+            });
+
+            // Add event listeners to favorite buttons
+            document.querySelectorAll('.favorite-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const listingId = parseInt(e.currentTarget.dataset.listingId);
+                    toggleFavorite(listingId);
+                });
+            });
+
+            // Add event listeners to seller names
+            document.querySelectorAll('.seller-name').forEach(sellerName => {
+                sellerName.addEventListener('click', (e) => {
+                    const sellerId = e.target.dataset.sellerId;
+                    showSellerProfile(sellerId);
+                });
+            });
+        }
+
+        // Toggle favorite status
+        function toggleFavorite(listingId) {
+            const listing = currentListings.find(l => l.id === listingId);
+            if (listing) {
+                listing.isFavorite = !listing.isFavorite;
+                renderListings(currentListings);
+                showNotification(listing.isFavorite ? 'Added to favorites!' : 'Removed from favorites!');
+                trackUserAction('favorite_toggled', 'engagement');
+            }
+        }
+
+        // Format date for display
+        function formatDate(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) return 'Posted today';
+            if (diffDays === 2) return 'Posted yesterday';
+            if (diffDays <= 7) return `Posted ${diffDays - 1} days ago`;
+            if (diffDays <= 30) return `Posted ${Math.ceil((diffDays - 1) / 7)} weeks ago`;
+            return `Posted ${Math.ceil((diffDays - 1) / 30)} months ago`;
+        }
+
+        // Show listing details modal with image gallery
+        function showListingDetails(listingId) {
+            const listing = currentListings.find(l => l.id === listingId);
+            if (!listing) return;
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl w-full max-w-4xl mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div class="relative">
+                        <!-- Image Gallery -->
+                        <div class="relative h-64 md:h-96 bg-gray-200 rounded-t-2xl overflow-hidden">
+                            <div class="image-gallery-container h-full">
+                                <div class="image-gallery flex transition-transform duration-300 ease-in-out h-full" id="image-gallery">
+                                    ${listing.images.map((img, index) => `
+                                        <img src="${img}" alt="${listing.title} - Image ${index + 1}" 
+                                             class="w-full h-full object-cover flex-shrink-0" 
+                                             onerror="this.src='https://via.placeholder.com/600x400/6B7280/FFFFFF?text=Image+Not+Available'">
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation arrows -->
+                            <button id="prev-image" class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all">
+                                <i data-feather="chevron-left" class="w-5 h-5"></i>
+                            </button>
+                            <button id="next-image" class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all">
+                                <i data-feather="chevron-right" class="w-5 h-5"></i>
+                            </button>
+                            
+                            <!-- Image indicators -->
+                            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                                ${listing.images.map((_, index) => `
+                                    <button class="image-indicator w-2 h-2 rounded-full bg-white bg-opacity-50 hover:bg-opacity-100 transition-all" data-index="${index}"></button>
+                                `).join('')}
+                            </div>
+                            
+                            <!-- Close button -->
+                            <button id="close-details-modal" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all">
+                                <i data-feather="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">${listing.title}</h2>
+                                    <div class="flex items-center gap-4 mb-3">
+                                        <span class="text-3xl font-bold text-green-600">${listing.price}</span>
+                                        <span class="text-gray-500">${formatDate(listing.datePosted)}</span>
+                                    </div>
+                                </div>
+                                <button id="share-listing" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200 flex items-center gap-2">
+                                    <i data-feather="share-2" class="w-4 h-4"></i>
+                                    Share
+                                </button>
+                            </div>
+                            
+                            <!-- Rating and Location -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-1">
+                                    <div class="flex items-center rating-stars">
+                                        ${generateStars(listing.rating)}
+                                    </div>
+                                    <span class="text-sm text-gray-600 ml-1">${listing.rating} (${listing.reviewCount} reviews)</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-gray-600">
+                                    <i data-feather="map-pin" class="w-4 h-4"></i>
+                                    <span>${listing.location}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Description -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-semibold mb-2">Description</h3>
+                                <p class="text-gray-700 leading-relaxed">${listing.description}</p>
+                            </div>
+                            
+                            <!-- Seller Info -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <h3 class="text-lg font-semibold mb-3">Seller Information</h3>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-bold">${listing.seller.charAt(0)}</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold seller-name" data-seller-id="${listing.sellerId}">${listing.seller}</p>
+                                        <p class="text-sm text-gray-600">Verified Student</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex gap-3">
+                                <button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                                    <i data-feather="message-circle" class="w-5 h-5"></i>
+                                    Contact Seller
+                                </button>
+                                <button class="favorite-btn-large ${listing.isFavorite ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-white py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2" data-listing-id="${listing.id}">
+                                    <i data-feather="heart" class="w-5 h-5 ${listing.isFavorite ? 'fill-current' : ''}"></i>
+                                    ${listing.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            feather.replace();
+            
+            // Image gallery functionality
+            let currentImageIndex = 0;
+            const gallery = document.getElementById('image-gallery');
+            const indicators = document.querySelectorAll('.image-indicator');
+            
+            function updateGallery() {
+                gallery.style.transform = `translateX(-${currentImageIndex * 100}%)`;
+                indicators.forEach((indicator, index) => {
+                    indicator.classList.toggle('bg-opacity-100', index === currentImageIndex);
+                    indicator.classList.toggle('bg-opacity-50', index !== currentImageIndex);
+                });
+            }
+            
+            document.getElementById('prev-image').addEventListener('click', () => {
+                currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : listing.images.length - 1;
+                updateGallery();
+            });
+            
+            document.getElementById('next-image').addEventListener('click', () => {
+                currentImageIndex = currentImageIndex < listing.images.length - 1 ? currentImageIndex + 1 : 0;
+                updateGallery();
+            });
+            
+            indicators.forEach((indicator, index) => {
+                indicator.addEventListener('click', () => {
+                    currentImageIndex = index;
+                    updateGallery();
+                });
+            });
+            
+            // Initialize gallery
+            updateGallery();
+            
+            // Share functionality
+            document.getElementById('share-listing').addEventListener('click', () => {
+                if (navigator.share) {
+                    navigator.share({
+                        title: listing.title,
+                        text: `Check out this ${listing.title} for ${listing.price} on ZimStudent Hub!`,
+                        url: window.location.href + `?listing=${listing.id}`
+                    });
+                } else {
+                    // Fallback for browsers that don't support Web Share API
+                    const shareText = `Check out this ${listing.title} for ${listing.price} on ZimStudent Hub! ${window.location.href}?listing=${listing.id}`;
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        showNotification('Link copied to clipboard!');
+                    });
+                }
+            });
+            
+            // Close modal
+            document.getElementById('close-details-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            // Large favorite button
+            document.querySelector('.favorite-btn-large').addEventListener('click', (e) => {
+                const listingId = parseInt(e.currentTarget.dataset.listingId);
+                toggleFavorite(listingId);
+                document.body.removeChild(modal);
+            });
+            
+            // Seller name click
+            document.querySelector('.seller-name').addEventListener('click', (e) => {
+                const sellerId = e.target.dataset.sellerId;
+                document.body.removeChild(modal);
+                showSellerProfile(sellerId);
+            });
+            
+            trackUserAction('listing_details_viewed', 'engagement');
+        }
+
+        // Show seller profile modal
+        function showSellerProfile(sellerId) {
+            const sellerListings = currentListings.filter(l => l.sellerId === sellerId);
+            const seller = sellerListings[0]?.seller || 'Unknown Seller';
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 w-full max-w-4xl mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-xl">${seller.charAt(0)}</span>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900">${seller}</h3>
+                                <p class="text-gray-600">Seller Profile</p>
+                                <div class="flex items-center gap-1 mt-1">
+                                    <div class="flex items-center rating-stars">
+                                        ${generateStars(4.7)}
+                                    </div>
+                                    <span class="text-sm text-gray-600 ml-1">4.7 (${sellerListings.length * 5} reviews)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="close-seller-modal" class="text-gray-500 hover:text-gray-700">
+                            <i data-feather="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-3">All Items by ${seller} (${sellerListings.length})</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${sellerListings.map(listing => `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mb-3">
+                                        <i data-feather="${listing.icon}" class="w-8 h-8 text-white"></i>
+                                    </div>
+                                    <h5 class="font-semibold text-sm mb-2">${listing.title}</h5>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-green-600 font-bold text-sm">${listing.price}</span>
+                                        <span class="text-gray-500 text-xs">${listing.location}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            feather.replace();
+
+            document.getElementById('close-seller-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            trackUserAction('seller_profile_viewed', 'engagement');
+        }
+
+        // Authentication state management
+        let currentUser = null;
+        
+        // Update UI based on auth state
+        function updateAuthUI(user) {
+            currentUser = user;
+            const loginLink = document.getElementById('login-link');
+            const logoutLink = document.getElementById('logout-link');
+            
+            if (user) {
+                loginLink.style.display = 'none';
+                logoutLink.style.display = 'flex';
+                logoutLink.innerHTML = `
+                    <i data-feather="user" class="w-4 h-4"></i>
+                    ${user.displayName || user.email.split('@')[0]}
+                `;
+                feather.replace();
+                showNotification(`Welcome back, ${user.displayName || user.email}!`);
+                
+                // Track login event
+                if (window.firebaseAnalytics && window.firebaseServices) {
+                    window.firebaseServices.logEvent(window.firebaseAnalytics, 'login', {
+                        method: 'email'
+                    });
+                }
+            } else {
+                loginLink.style.display = 'flex';
+                logoutLink.style.display = 'none';
+            }
+        }
+
+        // Wait for Firebase to load then set up auth listener
+        setTimeout(() => {
+            if (window.firebaseAuth && window.firebaseServices) {
+                window.firebaseServices.onAuthStateChanged(window.firebaseAuth, updateAuthUI);
+            }
+        }, 1000);
+
+        // Enhanced login modal with better UX
+        function showLoginModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-auto shadow-2xl transform transition-all">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-2xl">ZS</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900">Welcome to ZimStudent Hub</h3>
+                        <p class="text-gray-600 mt-2">Connect with fellow Zimbabwean students</p>
+                    </div>
+                    <form id="login-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="login-email" required placeholder="your.email@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <input type="password" id="login-password" required placeholder="Enter your password" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none transition-all">
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                                <i data-feather="log-in" class="w-4 h-4"></i>
+                                Login
+                            </button>
+                            <button type="button" id="signup-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                                <i data-feather="user-plus" class="w-4 h-4"></i>
+                                Sign Up
+                            </button>
+                        </div>
+                        <button type="button" id="close-modal" class="w-full mt-3 py-2 text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            feather.replace();
+
+            // Handle form submission
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                try {
+                    await window.firebaseServices.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                    document.body.removeChild(modal);
+                    showNotification('Login successful!');
+                } catch (error) {
+                    showNotification('Login failed: ' + error.message);
+                }
+            });
+
+            // Handle signup
+            document.getElementById('signup-btn').addEventListener('click', async () => {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                if (!email || !password) {
+                    showNotification('Please fill in both email and password');
+                    return;
+                }
+                
+                try {
+                    await window.firebaseServices.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                    document.body.removeChild(modal);
+                    showNotification('Account created successfully!');
+                } catch (error) {
+                    showNotification('Signup failed: ' + error.message);
+                }
+            });
+
+            // Close modal
+            document.getElementById('close-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        // Load listings from Firebase
+        async function loadListingsFromFirebase() {
+            try {
+                if (!window.firebaseDb || !window.firebaseServices) return;
+                
+                const listingsRef = window.firebaseServices.collection(window.firebaseDb, 'listings');
+                const q = window.firebaseServices.query(listingsRef, window.firebaseServices.orderBy('createdAt', 'desc'));
+                const querySnapshot = await window.firebaseServices.getDocs(q);
+                
+                const firebaseListings = [];
+                querySnapshot.forEach((doc) => {
+                    firebaseListings.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (firebaseListings.length > 0) {
+                    currentListings = firebaseListings;
+                    renderListings(currentListings);
+                }
+            } catch (error) {
+                console.log('Using sample data - Firebase not ready yet');
+            }
+        }
+
+        // Save listing to Firebase
+        async function saveListingToFirebase(listing) {
+            try {
+                if (!window.firebaseDb || !window.firebaseServices) {
+                    showNotification('Database not ready. Please try again.');
+                    return;
+                }
+                
+                const listingsRef = window.firebaseServices.collection(window.firebaseDb, 'listings');
+                await window.firebaseServices.addDoc(listingsRef, {
+                    ...listing,
+                    createdAt: new Date(),
+                    userId: currentUser?.uid || 'anonymous'
+                });
+                
+                showNotification('Listing saved successfully!');
+                loadListingsFromFirebase();
+            } catch (error) {
+                showNotification('Failed to save listing: ' + error.message);
+            }
+        }
+
+        // Enhanced analytics tracking for user interactions
+        function trackUserAction(action, category = 'engagement') {
+            if (window.firebaseAnalytics && window.firebaseServices) {
+                window.firebaseServices.logEvent(window.firebaseAnalytics, action, {
+                    event_category: category,
+                    event_label: action
+                });
+            }
+        }
+
+        // Track search actions
+        searchBtn.addEventListener('click', () => {
+            trackUserAction('search_performed', 'search');
+        });
+
+        // Track category selections
+        categoryCards.forEach(card => {
+            const originalClickHandler = card.onclick;
+            card.addEventListener('click', () => {
+                trackUserAction('category_selected', 'navigation');
+            });
+        });
+
+        floatingPostBtn.addEventListener('click', () => {
+            trackUserAction('floating_post_clicked', 'engagement');
+            showNotification('Quick post feature coming soon!');
+        });
+
+        // Add logout functionality to profile link
+        document.addEventListener('click', async (e) => {
+            const logoutLink = document.getElementById('logout-link');
+            if (e.target === logoutLink || logoutLink.contains(e.target)) {
+                e.preventDefault();
+                try {
+                    await window.firebaseServices.signOut(window.firebaseAuth);
+                    trackUserAction('logout', 'auth');
+                    showNotification('Logged out successfully!');
+                } catch (error) {
+                    showNotification('Logout failed: ' + error.message);
+                }
+            }
+        });
+
+        // Handle login link clicks
+        document.addEventListener('click', (e) => {
+            const loginLink = document.getElementById('login-link');
+            if (e.target === loginLink || loginLink.contains(e.target)) {
+                e.preventDefault();
+                if (window.firebaseAuth && window.firebaseServices) {
+                    showLoginModal();
+                    trackUserAction('login_modal_opened', 'auth');
+                } else {
+                    showNotification('Authentication system loading...');
+                }
+            }
+        });
+
+        // Favorites button functionality
+        document.getElementById('favorites-btn').addEventListener('click', () => {
+            const favoriteListings = currentListings.filter(listing => listing.isFavorite);
+            
+            if (favoriteListings.length === 0) {
+                showNotification('No favorites yet! Click the heart icon on items to add them.');
+                return;
+            }
+            
+            // Reset category selection
+            categoryCards.forEach(c => c.classList.remove('active'));
+            currentCategory = 'favorites';
+            
+            renderListings(favoriteListings);
+            showNotification(`Showing ${favoriteListings.length} favorite items`);
+            trackUserAction('favorites_viewed', 'engagement');
+        });
+
+        // Initialize the page
+        renderListings(currentListings);
+        
+        // Try to load Firebase data after a short delay
+        setTimeout(() => {
+            loadListingsFromFirebase();
+        }, 2000);
+        
+        // Add some responsive behavior
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && filterDropdown.classList.contains('open')) {
+                // Keep filter open on desktop
+            }
         });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9666c07a510d7eee',t:'MTc1MzczMDYxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
