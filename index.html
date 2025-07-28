@@ -1,0 +1,530 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZimStudent Hub - Marketplace for Zimbabwean Students in India</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Feather Icons for UI -->
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .custom-search-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        .product-card, .category-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .product-card:hover, .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .category-card.active {
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.5);
+            background-color: #dcfce7;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .price-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .location-badge {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        .seller-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .floating-action {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .filter-dropdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .filter-dropdown.open {
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Notification -->
+    <div id="notification" class="notification bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center">
+            <i data-feather="check-circle" class="w-5 h-5 mr-2"></i>
+            <span id="notification-text">Action completed!</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="/index.html" id="logo" class="text-2xl font-bold flex items-center">
+                            <span class="text-green-600">Zim</span><span class="text-yellow-400">Student</span><span class="text-red-600">Hub</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a id="admin-btn" href="/admin.html" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Admin
+                    </a>
+                    <a id="post-ad-btn" href="/post.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Post an Ad
+                    </a>
+                    <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Login
+                    </button>
+                    <button id="logout-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Marketplace View -->
+    <div id="main-view">
+        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Hero Section -->
+            <section class="text-center pt-8 pb-12">
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
+                    The Marketplace for <span class="text-green-600">Zim Students</span> in India
+                </h1>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+                    Buy, sell, and connect. Find textbooks, electronics, accommodation, and more from fellow students.
+                </p>
+                <div class="mt-8 max-w-xl mx-auto flex items-center bg-white rounded-full shadow-lg">
+                    <div class="pl-5 pr-2">
+                        <i data-feather="search" class="text-gray-400"></i>
+                    </div>
+                    <input id="searchInput" type="text" placeholder="Search for 'textbooks' or 'laptops'..." class="custom-search-input w-full py-4 px-2 text-gray-700 leading-tight focus:outline-none rounded-full">
+                </div>
+            </section>
+
+            <!-- Filters Section -->
+            <section class="py-4">
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <button id="filter-toggle" class="flex items-center text-gray-600 hover:text-gray-800 font-medium">
+                            <i data-feather="filter" class="w-4 h-4 mr-2"></i>
+                            Filters
+                            <i data-feather="chevron-down" class="w-4 h-4 ml-1" id="filter-chevron"></i>
+                        </button>
+                        <div class="flex items-center space-x-4">
+                            <select id="sort-select" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="newest">Newest First</option>
+                                <option value="price-low">Price: Low to High</option>
+                                <option value="price-high">Price: High to Low</option>
+                            </select>
+                            <button id="clear-filters" class="text-red-600 hover:text-red-800 text-sm font-medium">Clear All</button>
+                        </div>
+                    </div>
+                    
+                    <div id="filter-dropdown" class="filter-dropdown mt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                                <select id="location-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <option value="">All Locations</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                                <select id="price-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <option value="">All Prices</option>
+                                    <option value="0-1000">Under ₹1,000</option>
+                                    <option value="1000-5000">₹1,000 - ₹5,000</option>
+                                    <option value="5000-20000">₹5,000 - ₹20,000</option>
+                                    <option value="20000-50000">₹20,000 - ₹50,000</option>
+                                    <option value="50000+">Above ₹50,000</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                                <select id="condition-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <option value="">All Conditions</option>
+                                    <option value="new">New</option>
+                                    <option value="like-new">Like New</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Categories Section -->
+            <section class="py-8">
+                <h2 class="text-2xl font-bold text-center mb-8">Browse by Category</h2>
+                <div id="category-container" class="flex overflow-x-auto space-x-4 pb-4 no-scrollbar">
+                    <!-- Categories will be injected here -->
+                </div>
+            </section>
+
+            <!-- Featured Items Section -->
+            <section class="py-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Recent Listings</h2>
+                    <div class="text-sm text-gray-500">
+                        Showing <span id="showing-count">0</span> of <span id="total-count">0</span> items
+                    </div>
+                </div>
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Product cards will be injected here by JavaScript -->
+                </div>
+                <div id="no-results" class="hidden text-center py-12">
+                    <i data-feather="search" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No items found</h3>
+                    <p class="text-gray-500">Try adjusting your search or filters. Or maybe there are no approved products yet.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center">
+                <p>© 2025 ZimStudentHub. All rights reserved.</p>
+                <p class="text-sm text-gray-400 mt-1">Connecting the Zimbabwean student community across India.</p>
+                <div class="mt-4 flex justify-center space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a>
+                    <a href="#" class="text-gray-400 hover:text-white">Terms of Service</a>
+                    <a href="#" class="text-gray-400 hover:text-white">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyDKuYayTuAyOHT0WQO8AT0F7UB1hYDtkss",
+          authDomain: "musika-96adb.firebaseapp.com",
+          projectId: "musika-96adb",
+          storageBucket: "musika-96adb.appspot.com",
+          messagingSenderId: "676667599755",
+          appId: "1:676667599755:web:ff251719426c47cadb9d8e",
+          measurementId: "G-NTFC79F6FM"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- ADMIN CONFIG ---
+        const ADMIN_UID = "REPLACE_WITH_YOUR_ADMIN_UID"; // IMPORTANT: Replace with your actual Admin User ID from Firebase Auth
+
+        // --- DOM ELEMENTS ---
+        const productGrid = document.getElementById('product-grid');
+        const noResults = document.getElementById('no-results');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const adminBtn = document.getElementById('admin-btn');
+        const showingCount = document.getElementById('showing-count');
+        const totalCount = document.getElementById('total-count');
+        const categoryContainer = document.getElementById('category-container');
+        const searchInput = document.getElementById('searchInput');
+        const sortSelect = document.getElementById('sort-select');
+        const locationFilter = document.getElementById('location-filter');
+        const priceFilter = document.getElementById('price-filter');
+        const conditionFilter = document.getElementById('condition-filter');
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        
+        let allProducts = [];
+        let filteredProducts = [];
+        let currentCategory = 'All';
+        let currentSearchTerm = '';
+        let currentSort = 'newest';
+        let currentFilters = {
+            location: '',
+            price: '',
+            condition: ''
+        };
+
+        const categories = [
+            { name: 'All', icon: 'grid', count: 0 },
+            { name: 'Textbooks', icon: 'book-open', count: 0 },
+            { name: 'Electronics', icon: 'smartphone', count: 0 },
+            { name: 'Accommodation', icon: 'home', count: 0 },
+            { name: 'Services', icon: 'briefcase', count: 0 },
+            { name: 'Furniture', icon: 'archive', count: 0 },
+            { name: 'Sports', icon: 'activity', count: 0 }
+        ];
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in
+                loginBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                if (user.uid === ADMIN_UID) {
+                    adminBtn.classList.remove('hidden');
+                }
+            } else {
+                // User is signed out
+                loginBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                adminBtn.classList.add('hidden');
+            }
+        });
+
+        loginBtn.addEventListener('click', () => {
+            window.location.href = '/login.html';
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                showNotification('You have been logged out.');
+            }).catch((error) => {
+                console.error('Logout Error:', error);
+                showNotification('Error logging out.', 'error');
+            });
+        });
+
+        // --- DATA FETCHING ---
+        const productsRef = collection(db, "products");
+        onSnapshot(query(productsRef, where("approved", "==", true)), (snapshot) => {
+            allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            populateLocationFilter();
+            applyFiltersAndRender();
+        });
+
+        // --- RENDERING ---
+        function renderProducts(productsToRender) {
+            if (productsToRender.length === 0) {
+                productGrid.innerHTML = '';
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                productGrid.innerHTML = productsToRender.map(product => `
+                    <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200" data-product-id="${product.id}">
+                        <div class="relative">
+                            <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/475569?text=Image+Error';">
+                            <div class="absolute top-2 left-2">
+                                <span class="condition-badge px-2 py-1 text-xs font-medium text-white rounded-full ${product.condition === 'new' ? 'bg-green-500' : product.condition === 'like-new' ? 'bg-blue-500' : product.condition === 'good' ? 'bg-yellow-500' : 'bg-gray-500'}">${product.condition}</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg mb-2 line-clamp-2">${product.title}</h3>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="price-badge text-white px-3 py-1 rounded-full text-sm font-bold">₹${product.price}</span>
+                                <span class="location-badge text-white px-2 py-1 rounded-full text-xs">${product.location}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 font-medium flex items-center">
+                                    <i data-feather="user" class="w-4 h-4 mr-1"></i>
+                                    ${product.sellerName}
+                                </span>
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-gray-100">
+                                <a href="https://wa.me/${product.sellerWhatsapp}?text=Hi! I'm interested in: ${encodeURIComponent(product.title)}" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-center block transition-colors">
+                                    <i data-feather="message-circle" class="w-4 h-4 inline mr-2"></i>
+                                    Contact Seller
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            feather.replace();
+            updateStats();
+        }
+
+        function renderCategories() {
+            categories.forEach(cat => {
+                if (cat.name === 'All') {
+                    cat.count = allProducts.length;
+                } else {
+                    cat.count = allProducts.filter(p => p.category === cat.name).length;
+                }
+            });
+
+            categoryContainer.innerHTML = categories.map(category => `
+                <div class="category-card flex-shrink-0 bg-white rounded-lg shadow-sm p-4 cursor-pointer border-2 border-transparent hover:border-green-200 ${category.name === currentCategory ? 'active' : ''}" data-category="${category.name}">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                            <i data-feather="${category.icon}" class="w-6 h-6 text-green-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-sm">${category.name}</h3>
+                        <span class="text-xs text-gray-500 mt-1">${category.count} items</span>
+                    </div>
+                </div>
+            `).join('');
+            feather.replace();
+        }
+
+        // --- FILTERING AND SORTING ---
+        function applyFiltersAndRender() {
+            let filtered = [...allProducts];
+
+            // Category filter
+            if (currentCategory !== 'All') {
+                filtered = filtered.filter(p => p.category === currentCategory);
+            }
+
+            // Search filter
+            if (currentSearchTerm) {
+                const term = currentSearchTerm.toLowerCase();
+                filtered = filtered.filter(p => 
+                    p.title.toLowerCase().includes(term) ||
+                    p.category.toLowerCase().includes(term) ||
+                    p.location.toLowerCase().includes(term)
+                );
+            }
+            
+            // Advanced filters
+            if (currentFilters.location) {
+                filtered = filtered.filter(p => p.location === currentFilters.location);
+            }
+            if (currentFilters.condition) {
+                filtered = filtered.filter(p => p.condition === currentFilters.condition);
+            }
+            if (currentFilters.price) {
+                const [min, max] = currentFilters.price.split('-').map(p => p.replace('+', ''));
+                filtered = filtered.filter(p => {
+                    const priceNum = parseFloat(p.price);
+                    if (currentFilters.price.includes('+')) {
+                        return priceNum >= parseInt(min);
+                    } else {
+                        return priceNum >= parseInt(min) && priceNum <= parseInt(max);
+                    }
+                });
+            }
+
+            // Sorting
+            switch (currentSort) {
+                case 'price-low':
+                    filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+                    break;
+                case 'price-high':
+                    filtered.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+                    break;
+                case 'newest':
+                default:
+                    // Assuming products have a timestamp field, otherwise sort by another field
+                    // For now, no specific date sorting as it's not in the Firestore data yet
+                    break;
+            }
+
+            filteredProducts = filtered;
+            renderProducts(filteredProducts);
+            renderCategories();
+        }
+        
+        function populateLocationFilter() {
+            const locations = [...new Set(allProducts.map(p => p.location))].sort();
+            locationFilter.innerHTML = '<option value="">All Locations</option>' + 
+                locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+        }
+
+        function updateStats() {
+            showingCount.textContent = filteredProducts.length;
+            totalCount.textContent = allProducts.length;
+        }
+        
+        // --- EVENT LISTENERS ---
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
+            applyFiltersAndRender();
+        });
+
+        categoryContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.category-card');
+            if (card) {
+                document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                currentCategory = card.dataset.category;
+                applyFiltersAndRender();
+            }
+        });
+
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            applyFiltersAndRender();
+        });
+
+        locationFilter.addEventListener('change', (e) => { currentFilters.location = e.target.value; applyFiltersAndRender(); });
+        priceFilter.addEventListener('change', (e) => { currentFilters.price = e.target.value; applyFiltersAndRender(); });
+        conditionFilter.addEventListener('change', (e) => { currentFilters.condition = e.target.value; applyFiltersAndRender(); });
+
+        clearFiltersBtn.addEventListener('click', () => {
+            currentFilters = { location: '', price: '', condition: '' };
+            locationFilter.value = '';
+            priceFilter.value = '';
+            conditionFilter.value = '';
+            sortSelect.value = 'newest';
+            currentSort = 'newest';
+            currentSearchTerm = '';
+            searchInput.value = '';
+            currentCategory = 'All';
+            applyFiltersAndRender();
+            showNotification('Filters cleared');
+        });
+        
+        document.getElementById('filter-toggle').addEventListener('click', () => {
+            const dropdown = document.getElementById('filter-dropdown');
+            const chevron = document.getElementById('filter-chevron');
+            dropdown.classList.toggle('open');
+            chevron.style.transform = dropdown.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+
+        // --- UTILITY FUNCTIONS ---
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            notificationText.textContent = message;
+            notification.className = `notification ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initial Load
+        window.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
