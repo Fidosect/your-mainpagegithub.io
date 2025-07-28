@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ZimStudent Hub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Feather Icons for UI -->
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="flex items-center">
+            <i id="notification-icon" data-feather="check-circle" class="w-5 h-5 mr-2"></i>
+            <span id="notification-text"></span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="/index.html" class="text-2xl font-bold flex items-center">
+                            <span class="text-green-600">Zim</span><span class="text-yellow-400">Student</span><span class="text-red-600">Hub</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                     <a href="/index.html" class="text-gray-600 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100">
+                        Marketplace
+                    </a>
+                    <button id="logout-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Admin Panel -->
+    <main id="admin-panel" class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900">Admin Dashboard</h1>
+            <div class="text-lg font-medium">
+                Pending Approvals: <span id="pending-count" class="bg-yellow-200 text-yellow-800 font-bold py-1 px-3 rounded-full">0</span>
+            </div>
+        </div>
+        
+        <div id="pending-products-grid" class="space-y-6">
+            <!-- Pending products will be injected here -->
+        </div>
+
+        <div id="no-pending-products" class="hidden text-center py-20 bg-white rounded-lg shadow">
+            <i data-feather="check-square" class="w-16 h-16 text-green-400 mx-auto mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">All Caught Up!</h3>
+            <p class="text-gray-500">There are no pending products to review.</p>
+        </div>
+    </main>
+    
+    <!-- Access Denied View -->
+    <div id="access-denied" class="hidden text-center py-20">
+        <i data-feather="lock" class="w-16 h-16 text-red-400 mx-auto mb-4"></i>
+        <h2 class="text-2xl font-bold text-gray-800">Access Denied</h2>
+        <p class="text-gray-600 mt-2">You must be an administrator to view this page.</p>
+        <a href="/login.html" class="mt-6 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg">
+            Login as Admin
+        </a>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyDKuYayTuAyOHT0WQO8AT0F7UB1hYDtkss",
+          authDomain: "musika-96adb.firebaseapp.com",
+          projectId: "musika-96adb",
+          storageBucket: "musika-96adb.appspot.com",
+          messagingSenderId: "676667599755",
+          appId: "1:676667599755:web:ff251719426c47cadb9d8e",
+          measurementId: "G-NTFC79F6FM"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // --- ADMIN CONFIG ---
+        const ADMIN_UID = "REPLACE_WITH_YOUR_ADMIN_UID"; // IMPORTANT: Replace with your actual Admin User ID from Firebase Auth
+
+        // DOM Elements
+        const adminPanel = document.getElementById('admin-panel');
+        const accessDenied = document.getElementById('access-denied');
+        const logoutBtn = document.getElementById('logout-btn');
+        const pendingGrid = document.getElementById('pending-products-grid');
+        const noPendingProducts = document.getElementById('no-pending-products');
+        const pendingCount = document.getElementById('pending-count');
+
+        // --- AUTHENTICATION CHECK ---
+        onAuthStateChanged(auth, user => {
+            if (user && user.uid === ADMIN_UID) {
+                // User is the admin
+                adminPanel.classList.remove('hidden');
+                accessDenied.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                listenForPendingProducts();
+            } else {
+                // User is not admin or not logged in
+                adminPanel.classList.add('hidden');
+                accessDenied.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).catch(error => console.error('Logout Error:', error));
+        });
+
+        // --- DATA HANDLING ---
+        function listenForPendingProducts() {
+            const productsRef = collection(db, "products");
+            const q = query(productsRef, where("approved", "==", false));
+
+            onSnapshot(q, (snapshot) => {
+                const pendingProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderPendingProducts(pendingProducts);
+            });
+        }
+
+        async function approveProduct(productId) {
+            const productRef = doc(db, "products", productId);
+            try {
+                await updateDoc(productRef, { approved: true });
+                showNotification('Product approved and is now live.', 'success');
+            } catch (error) {
+                console.error("Error approving product: ", error);
+                showNotification('Error approving product.', 'error');
+            }
+        }
+
+        async function rejectProduct(productId, imageUrl) {
+            const productRef = doc(db, "products", productId);
+            try {
+                // Delete the Firestore document
+                await deleteDoc(productRef);
+
+                // Delete the image from Storage
+                if (imageUrl) {
+                    const imageRef = ref(storage, imageUrl);
+                    await deleteObject(imageRef);
+                }
+                
+                showNotification('Product rejected and deleted.', 'success');
+            } catch (error) {
+                console.error("Error rejecting product: ", error);
+                showNotification('Error rejecting product.', 'error');
+            }
+        }
+
+        // --- RENDERING ---
+        function renderPendingProducts(products) {
+            pendingCount.textContent = products.length;
+            if (products.length === 0) {
+                pendingGrid.innerHTML = '';
+                noPendingProducts.classList.remove('hidden');
+            } else {
+                noPendingProducts.classList.add('hidden');
+                pendingGrid.innerHTML = products.map(product => `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden p-4 flex flex-col md:flex-row gap-6" data-id="${product.id}">
+                        <img src="${product.imageUrl}" alt="${product.title}" class="w-full md:w-1/3 h-48 object-cover rounded-md">
+                        <div class="flex-grow">
+                            <h3 class="text-xl font-bold text-gray-800">${product.title}</h3>
+                            <p class="text-gray-600 mt-2">${product.description || 'No description provided.'}</p>
+                            <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                                <div><strong class="block text-gray-500">Price</strong> ₹${product.price}</div>
+                                <div><strong class="block text-gray-500">Category</strong> ${product.category}</div>
+                                <div><strong class="block text-gray-500">Condition</strong> ${product.condition}</div>
+                                <div><strong class="block text-gray-500">Location</strong> ${product.location}</div>
+                                <div><strong class="block text-gray-500">Seller</strong> ${product.sellerName}</div>
+                                <div><strong class="block text-gray-500">WhatsApp</strong> ${product.sellerWhatsapp}</div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center items-center space-y-3 md:space-y-0 md:space-x-3 md:flex-row flex-shrink-0">
+                            <button class="approve-btn w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center transition-colors">
+                                <i data-feather="check" class="w-5 h-5 mr-2"></i> Approve
+                            </button>
+                            <button class="reject-btn w-full md:w-auto bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center transition-colors">
+                                <i data-feather="x" class="w-5 h-5 mr-2"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                addEventListenersToButtons();
+            }
+            feather.replace();
+        }
+
+        function addEventListenersToButtons() {
+            document.querySelectorAll('.approve-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.target.closest('[data-id]').dataset.id;
+                    approveProduct(productId);
+                });
+            });
+
+            document.querySelectorAll('.reject-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productElement = e.target.closest('[data-id]');
+                    const productId = productElement.dataset.id;
+                    const imageUrl = productElement.querySelector('img').src;
+                    if (confirm('Are you sure you want to reject and delete this product? This action cannot be undone.')) {
+                        rejectProduct(productId, imageUrl);
+                    }
+                });
+            });
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            const notificationIcon = document.getElementById('notification-icon');
+            
+            notificationText.textContent = message;
+            if (type === 'success') {
+                notification.classList.remove('bg-red-500');
+                notification.classList.add('bg-green-500');
+                notificationIcon.setAttribute('data-feather', 'check-circle');
+            } else {
+                notification.classList.remove('bg-green-500');
+                notification.classList.add('bg-red-500');
+                notificationIcon.setAttribute('data-feather', 'alert-circle');
+            }
+            feather.replace();
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 4000);
+        }
+
+        // Initial Load
+        window.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
